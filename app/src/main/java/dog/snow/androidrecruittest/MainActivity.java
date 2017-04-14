@@ -1,6 +1,9 @@
 package dog.snow.androidrecruittest;
 
 import android.support.constraint.ConstraintLayout;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -10,7 +13,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,33 +28,68 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SearchInterface {
     public static String TAG = "RetroMain";
     private RecyclerView mItemRecyclerView;
     private ItemsAdapter mItemsAdapter;
     private List<Item> mItemsResults;
-    private EditText mSearchEditText;
     private TextView mEmptyTextView;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private String mSearchQuery;
+    private LinearLayoutManager mLinearLayoutManager;
+
+    public void scrollView(String queary){
+        mSearchQuery = queary;
+        scrollToPosition();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mSearchQuery = "";
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.add(R.id.fragment_container,SearchFragment.newInstance());
+        transaction.commit();
 
         mItemRecyclerView = (RecyclerView) findViewById(R.id.items_rv);
         mEmptyTextView = (TextView) findViewById(R.id.empty_list_tv);
-        mSearchEditText = (EditText) findViewById(R.id.search_et);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.activity_main_swipe_refresh_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                fetchData();
+            }
+        });
 
-        mItemRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        mLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
+        mItemRecyclerView.setLayoutManager(mLinearLayoutManager);
 
-        fetchData();
+        updateUI();
+    }
+
+    private void scrollToPosition(){
+        String name,desc;
+        for (Item item : mItemsResults){
+            name = item.getName().toLowerCase();
+            desc = item.getDescription().toLowerCase();
+            if(name.contains(mSearchQuery) || desc.contains(mSearchQuery)){
+                mLinearLayoutManager.scrollToPositionWithOffset(item.getId(),0);
+                break;
+            }
+        }
     }
 
     private void updateUI(){
-        mEmptyTextView.setVisibility(View.GONE);
+        mSwipeRefreshLayout.setRefreshing(false);
         mItemsResults = AppContainer.get(getApplicationContext()).getItems();
-        mItemsAdapter = new ItemsAdapter(mItemsResults);
-        mItemRecyclerView.setAdapter(mItemsAdapter);
+        if(mItemsResults.size()>0){
+            mEmptyTextView.setVisibility(View.GONE);
+            mItemsAdapter = new ItemsAdapter(mItemsResults); //primitive way, to do
+            mItemRecyclerView.setAdapter(mItemsAdapter);
+        }
     }
 
     private void fetchData(){
@@ -74,8 +111,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<Item>> call, Throwable t) {
-                Toast.makeText(getApplicationContext(),getString(R.string.loading_error),Toast.LENGTH_LONG);
+                Toast.makeText(getApplicationContext(),getString(R.string.loading_error),Toast.LENGTH_LONG).show();
                 Log.i(TAG,t.toString());
+                mSwipeRefreshLayout.setRefreshing(false);
             }
         });
     }
