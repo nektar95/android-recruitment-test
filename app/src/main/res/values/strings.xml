@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Android Recruit Test</string>
-    <string name="search_hint">Search...</string>
-    <string name="empty_list">No items to show...</string>
+    <string name="search_hint">Search…</string>
+    <string name="empty_list">No items to show…</string>
+
+    <string name="icon_item">icon</string>
+    <string name="name_item">Name</string>
+    <string name="description_item">Description</string>
 </resources>
