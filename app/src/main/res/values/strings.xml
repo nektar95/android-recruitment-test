@@ -6,4 +6,6 @@
     <string name="icon_item">icon</string>
     <string name="name_item">Name</string>
     <string name="description_item">Description</string>
+
+    <string name="loading_error">Fetching problem</string>
 </resources>

@@ -15,7 +15,6 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField "String", "API_ENDPOINT", String.format('"http://%s:8080"', InetAddress.getLocalHost().getCanonicalHostName())
         }
     }
 }
@@ -27,6 +26,7 @@ dependencies {
     compile 'com.google.code.gson:gson:2.7'
     compile 'com.squareup.retrofit2:retrofit:2.0.2'
     compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+    compile 'com.squareup.picasso:picasso:2.5.2'
     compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha3'
     compile 'com.android.support:recyclerview-v7:25.3.0'
     testCompile 'junit:junit:4.12'
