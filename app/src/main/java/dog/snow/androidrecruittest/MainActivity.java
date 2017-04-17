@@ -1,5 +1,8 @@
 package dog.snow.androidrecruittest;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -56,11 +59,12 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
         setContentView(R.layout.activity_main);
         mSearchQuery = "";
         mItemsResults = new ArrayList<>();
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-        transaction.add(R.id.fragment_container,SearchFragment.newInstance());
-        transaction.commit();
+        if(savedInstanceState == null) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.add(R.id.fragment_container, SearchFragment.newInstance());
+            transaction.commit();
+        }
 
         mItemRecyclerView = (RecyclerView) findViewById(R.id.items_rv);
         mEmptyTextView = (TextView) findViewById(R.id.empty_list_tv);
@@ -109,7 +113,20 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
         }
     }
 
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
     private void fetchData(){
+        if(!isNetworkAvailable()){
+            Toast.makeText(getApplicationContext(),getString(R.string.internet_connection),Toast.LENGTH_LONG).show();
+            mSwipeRefreshLayout.setRefreshing(false);
+            return;
+        }
+
         ApiInterface apiInterface = ApiClient.getClient().create(ApiInterface.class);
 
         Call<List<Item>> call = apiInterface.getSnowDogItems();

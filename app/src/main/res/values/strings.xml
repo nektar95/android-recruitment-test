@@ -8,5 +8,6 @@
     <string name="description_item">Description</string>
 
     <string name="loading_error">Fetching problem</string>
+    <string name="internet_connection">No internet connection</string>
     <string name="empty_query">Empty query</string>
 </resources>
