@@ -8,7 +8,7 @@
     android:id="@+id/constraintLayout">
 
     <ImageView
-        android:src="@mipmap/ic_launcher"
+        android:background="@android:color/darker_gray"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:id="@+id/icon_ic"

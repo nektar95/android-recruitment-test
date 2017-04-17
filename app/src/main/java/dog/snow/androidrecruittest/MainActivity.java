@@ -18,14 +18,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.PicassoTools;
 
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.List;
 
 import dog.snow.androidrecruittest.fetching.ApiClient;
+import dog.snow.androidrecruittest.fetching.ApiError;
 import dog.snow.androidrecruittest.fetching.ApiInterface;
 import dog.snow.androidrecruittest.model.Item;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
+import retrofit2.Converter;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements SearchInterface {
@@ -48,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSearchQuery = "";
+        mItemsResults = new ArrayList<>();
 
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
@@ -66,8 +74,14 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
 
         mLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
         mItemRecyclerView.setLayoutManager(mLinearLayoutManager);
+        mItemsAdapter = new ItemsAdapter(mItemsResults);
+        mItemRecyclerView.setAdapter(mItemsAdapter);
 
-        updateUI();
+        if(AppContainer.get(getApplicationContext()).getItems().size()==0){
+            fetchData();
+        } else {
+            updateUI();
+        }
     }
 
     private void scrollToPosition(){
@@ -84,11 +98,14 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
 
     private void updateUI(){
         mSwipeRefreshLayout.setRefreshing(false);
-        mItemsResults = AppContainer.get(getApplicationContext()).getItems();
+        mItemsResults.clear();
+        mItemsAdapter.notifyDataSetChanged();
+        mItemsResults.addAll(AppContainer.get(getApplicationContext()).getItems());
         if(mItemsResults.size()>0){
             mEmptyTextView.setVisibility(View.GONE);
-            mItemsAdapter = new ItemsAdapter(mItemsResults); //primitive way, to do
-            mItemRecyclerView.setAdapter(mItemsAdapter);
+            mItemsAdapter.notifyDataSetChanged();
+        } else {
+            mEmptyTextView.setVisibility(View.VISIBLE);
         }
     }
 
@@ -101,11 +118,26 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
             public void onResponse(Call<List<Item>> call, Response<List<Item>> response) {
                 if(response.isSuccessful()){
                     AppContainer.get(getApplicationContext()).clearDatabase();
+                    PicassoTools.clearCache(Picasso.with(getApplicationContext()));
                     List<Item> items = response.body();
                     for (Item item : items){
                         AppContainer.get(getApplicationContext()).addItem(item);
                     }
                     updateUI();
+                } else {
+                    Converter<ResponseBody, ApiError> converter = ApiClient.getClient()
+                            .responseBodyConverter(ApiError.class, new Annotation[0]);
+
+                    ApiError error;
+
+                    try {
+                        error = converter.convert(response.errorBody());
+                    } catch (IOException e) {
+                        error = new ApiError();
+                    }
+
+                    Toast.makeText(getApplicationContext(),getString(R.string.loading_error),Toast.LENGTH_LONG).show();
+                    Log.i(TAG,error.toString());
                 }
             }
 
@@ -139,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
         public void bindResult(final Item item){
             mName.setText(item.getName());
             mDescription.setText(item.getDescription());
-            Picasso.with(getApplicationContext()).load(item.getUrl()+"/icon.png")
+            Picasso.with(getApplicationContext()).load(item.getUrl())
                     .resize(64,64)
                     .centerCrop()
                     .into(mImageView, new com.squareup.picasso.Callback() {
@@ -152,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements SearchInterface {
                         public void onError() {
                             Log.i(TAG,"Can't load picture: "+item.getId());
                         }
+
                     });
         }
     }
